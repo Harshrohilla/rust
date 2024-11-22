@@ -16,7 +16,7 @@ pub mod handlers {
 use actix_web::{web, App, HttpServer};
 use diesel::r2d2::{self, ConnectionManager};
 use diesel::PgConnection;
-use handlers::user_handler::{create_user, delete_user, get_user, get_users, update_user};
+use handlers::user_handler::{self};
 
 // type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -34,11 +34,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone()))
-            .route("/users/create", web::post().to(create_user))
-            .route("/users/get/all", web::get().to(get_users))
-            .route("/users/get/{id}", web::get().to(get_user))
-            .route("/users/delete/{id}", web::delete().to(delete_user))
-            .route("/users/update", web::put().to(update_user))
+            .configure(user_handler::configure)
     })
     .bind("127.0.0.1:8080")?
     .run()

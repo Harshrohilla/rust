@@ -1,4 +1,4 @@
-use crate::models::rust_user::RustUser;
+use crate::models::rust_user::{NewUser, RustUser};
 use crate::services::user_service;
 use actix_web::{web, HttpResponse, Responder};
 use diesel::r2d2::{self, ConnectionManager};
@@ -8,7 +8,7 @@ type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 pub async fn create_user(
     pool: web::Data<DbPool>,
-    new_rust_user: web::Json<RustUser>,
+    new_rust_user: web::Json<NewUser>,
 ) -> impl Responder {
     let mut conn = pool.get().expect("Couldn't get db connection from pool");
 
@@ -45,11 +45,25 @@ pub async fn delete_user(pool: web::Data<DbPool>, user_id: web::Path<i32>) -> im
     }
 }
 
-pub async fn update_user(pool: web::Data<DbPool>, updated_user: web::Json<RustUser>) -> impl Responder {
+pub async fn update_user(
+    pool: web::Data<DbPool>,
+    updated_user: web::Json<RustUser>,
+) -> impl Responder {
     let mut conn = pool.get().expect("Couldn't get db connection from pool");
 
     match user_service::update_user(&mut conn, updated_user.into_inner()) {
         Ok(updated_user) => HttpResponse::Ok().json(updated_user),
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
+}
+
+pub fn configure(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::scope("/users")
+            .route("/create", web::post().to(create_user))
+            .route("/get/all", web::get().to(get_users))
+            .route("/get/{id}", web::get().to(get_user))
+            .route("/delete/{id}", web::delete().to(delete_user))
+            .route("/update", web::put().to(update_user))
+    );
 }
